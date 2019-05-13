@@ -1,22 +1,30 @@
-name: example_flutter
+name: dc2f_edit_client_desktop
 description: An example project for flutter-desktop-embedding.
 
 environment:
-  sdk: '>=2.0.0 <3.0.0'
+  sdk: '>=2.2.2 <3.0.0'
   # The example interacts with build scripts on the Flutter side that are not
   # yet stable, so it requires a very recent version of Flutter.
   # This version will increase regularly as the build scripts change.
-  flutter: '>=1.5.9-pre.219'
+  flutter: '>=1.5.8'
 
 dependencies:
+  pedantic: '1.7.0'
+  provider: ^2.0.1
+  dio: ^2.1.3
+  logging: ^0.11.3+2
+  json_annotation: ^2.3.0
   flutter:
     sdk: flutter
 
   cupertino_icons: ^0.1.0
 
 dev_dependencies:
-  flutter_test:
-    sdk: flutter
+  json_serializable: ^2.3.0
+  builder_static_text: ^0.0.1
+  build_runner: ^1.4.0
+#  flutter_test:
+#    sdk: flutter
 
 flutter:
   uses-material-design: true
