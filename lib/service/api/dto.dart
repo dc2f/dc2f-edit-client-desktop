@@ -7,6 +7,7 @@ part 'dto.g.dart';
 class ContentDefReflect {
   ContentDefReflect({
     @required this.content,
+    @required this.breadcrumbs,
     @required this.children,
     @required this.reflection,
   });
@@ -14,7 +15,7 @@ class ContentDefReflect {
   factory ContentDefReflect.fromJson(Map<String, dynamic> json) => _$ContentDefReflectFromJson(json);
 
   final Map<String, dynamic> content;
-
+  final List<BreadcrumbsItem> breadcrumbs;
   final Map<String, List<ContentDefChild>> children;
   final ContentDefReflection reflection;
 
@@ -22,10 +23,26 @@ class ContentDefReflect {
 }
 
 @JsonSerializable(nullable: false)
+class BreadcrumbsItem {
+  BreadcrumbsItem({
+    this.name,
+    this.path,
+  });
+
+  factory BreadcrumbsItem.fromJson(Map<String, dynamic> json) => _$BreadcrumbsItemFromJson(json);
+
+  Map<String, dynamic> toJson() => _$BreadcrumbsItemToJson(this);
+
+  final String name;
+  final String path;
+}
+
+@JsonSerializable()
 class ContentDefChild {
   ContentDefChild({
     this.path,
     this.isProperty,
+    this.rawContent,
   });
 
   factory ContentDefChild.fromJson(Map<String, dynamic> json) => _$ContentDefChildFromJson(json);
@@ -34,6 +51,8 @@ class ContentDefChild {
 
   final String path;
   final bool isProperty;
+  /// for parsable content, contains the raw string representation.
+  final String rawContent;
 }
 
 @JsonSerializable(nullable: false)
@@ -49,19 +68,9 @@ class ContentDefReflection {
   final List<ContentDefPropertyReflection> properties;
 }
 
-enum PrimitiveType {
-  String,
-  Boolean,
-  ZonedDateTime,
-  Unknown
-}
+enum PrimitiveType { String, Boolean, ZonedDateTime, Unknown }
 
-enum ContentDefKind {
-  Parsable,
-  Primitive,
-  Map,
-  Nested
-}
+enum ContentDefKind { Parsable, Primitive, Map, Nested }
 
 @JsonSerializable(nullable: true)
 class ContentDefPropertyReflection {

@@ -9,6 +9,11 @@ part of 'dto.dart';
 ContentDefReflect _$ContentDefReflectFromJson(Map<String, dynamic> json) {
   return ContentDefReflect(
       content: json['content'] as Map<String, dynamic>,
+      breadcrumbs: (json['breadcrumbs'] as List)
+          ?.map((e) => e == null
+              ? null
+              : BreadcrumbsItem.fromJson(e as Map<String, dynamic>))
+          ?.toList(),
       children: (json['children'] as Map<String, dynamic>)?.map(
         (k, e) => MapEntry(
             k,
@@ -27,17 +32,32 @@ ContentDefReflect _$ContentDefReflectFromJson(Map<String, dynamic> json) {
 Map<String, dynamic> _$ContentDefReflectToJson(ContentDefReflect instance) =>
     <String, dynamic>{
       'content': instance.content,
+      'breadcrumbs': instance.breadcrumbs,
       'children': instance.children,
       'reflection': instance.reflection
     };
 
+BreadcrumbsItem _$BreadcrumbsItemFromJson(Map<String, dynamic> json) {
+  return BreadcrumbsItem(
+      name: json['name'] as String, path: json['path'] as String);
+}
+
+Map<String, dynamic> _$BreadcrumbsItemToJson(BreadcrumbsItem instance) =>
+    <String, dynamic>{'name': instance.name, 'path': instance.path};
+
 ContentDefChild _$ContentDefChildFromJson(Map<String, dynamic> json) {
   return ContentDefChild(
-      path: json['path'] as String, isProperty: json['isProperty'] as bool);
+      path: json['path'] as String,
+      isProperty: json['isProperty'] as bool,
+      rawContent: json['rawContent'] as String);
 }
 
 Map<String, dynamic> _$ContentDefChildToJson(ContentDefChild instance) =>
-    <String, dynamic>{'path': instance.path, 'isProperty': instance.isProperty};
+    <String, dynamic>{
+      'path': instance.path,
+      'isProperty': instance.isProperty,
+      'rawContent': instance.rawContent
+    };
 
 ContentDefReflection _$ContentDefReflectionFromJson(Map<String, dynamic> json) {
   return ContentDefReflection(

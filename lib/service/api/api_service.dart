@@ -16,7 +16,8 @@ class ApiService {
 
   Future<ContentDefReflect> reflectContentPath(String path) {
     if (!path.startsWith('/')) {
-      throw ArgumentError.value(path, 'Path must start with slash.');
+//      throw ArgumentError.value(path, 'Path must start with slash.');
+      path = '/$path';
     }
     return _logApiError(apiCaller.get('/reflect$path').then((json) => ContentDefReflect.fromJson(json)));
   }
