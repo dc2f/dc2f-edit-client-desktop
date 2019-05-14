@@ -234,6 +234,9 @@ class ContentProperties extends StatelessWidget {
       final content = reflect.children[prop.name]?.first?.rawContent;
       return [
         TextField(
+          // workaround: add key, otherwise it seems the scrolling of the ListView is confused
+          // with the scrolling of the text field.
+          key: PageStorageKey('${prop.name}/${DateTime.now()}'),
           decoration: InputDecoration(
             helperText: '${prop.parsableHint}',
           ),

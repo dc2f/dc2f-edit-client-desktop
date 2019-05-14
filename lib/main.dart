@@ -26,6 +26,8 @@ import 'utils/logging.dart';
 void main() {
   setupLogging();
 
+
+
   // See https://github.com/flutter/flutter/wiki/Desktop-shells#target-platform-override
   debugDefaultTargetPlatformOverride = TargetPlatform.fuchsia;
 

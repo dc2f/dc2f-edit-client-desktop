@@ -36,6 +36,7 @@ class FlutterCrashlytics {
 
 void setupLogging() {
   FlutterError.onError = (FlutterErrorDetails details) {
+    _logger.severe('flutter error ${details.toString()}', details.exception, details.stack);
     FlutterError.dumpErrorToConsole(details);
     FlutterCrashlytics().onError(details);
   };
