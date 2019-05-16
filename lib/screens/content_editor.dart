@@ -11,20 +11,43 @@ import '../deps.dart';
 
 final _logger = Logger('content_editor');
 
+class ContentModifications {
+  ContentModifications({this.updates = const <String, dynamic>{}});
+
+  final Map<String, dynamic> updates;
+
+  bool get hasModifications => updates.isNotEmpty;
+}
+
 class ContentEditorBloc {
   ContentEditorBloc() {
     _editPath.add('/');
+    _modifications.add(ContentModifications());
   }
 
   final BehaviorSubject<String> _editPath = BehaviorSubject<String>();
+  final BehaviorSubject<ContentModifications> _modifications = BehaviorSubject<ContentModifications>();
 
   ValueObservable<String> get pathChanged => _editPath.stream;
+
+  ValueObservable<ContentModifications> get modificationsChanged => _modifications.stream;
+
+  String get path => _editPath.value;
 
   void changePath(String newPath) {
     if (!newPath.startsWith('/')) {
       newPath = '/$newPath';
     }
     _editPath.add(newPath);
+    // discards changes (for now?)
+    _modifications.add(ContentModifications());
+  }
+
+  void addModificationUpdate(String name, dynamic value) {
+    _modifications.add(ContentModifications(updates: <String, dynamic>{
+      ..._modifications.value.updates,
+      name: value,
+    }));
   }
 }
 
@@ -126,8 +149,31 @@ class _ContentEditorState extends State<ContentEditor> {
                               BreadcrumbsWidget(
                                 breadcrumbs: snapshot.data.breadcrumbs,
                               ),
-                              ContentProperties(
-                                reflect: snapshot.data,
+                              Theme(
+                                data: Theme.of(context).copyWith(
+//                                  focusColor: Colors.green,
+//                                  highlightColor: Colors.blue,
+//                                  selectedRowColor: Colors.purple,
+//                                  splashColor: Colors.cyan,
+//                                  backgroundColor: Colors.amber,
+//                                  cardColor: Colors.deepOrange,
+                                  // this looks really weird.
+                                  hoverColor: Colors.transparent,
+                                ),
+                                child: Expanded(
+                                  child: SingleChildScrollView(
+                                    child: ContentProperties(
+                                      reflection: snapshot.data.reflection,
+                                      content: snapshot.data.content,
+                                      children: snapshot.data.children,
+                                      types: snapshot.data.types,
+                                      onValueChanged: (String name, dynamic value) {
+                                        _logger.finest('Property $name changed to $value');
+                                          _contentEditorBloc.addModificationUpdate(name, value);
+                                      },
+                                    ),
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -155,7 +201,9 @@ class BreadcrumbsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final contentEditorBloc = Provider.of<ContentEditorBloc>(context);
     return Row(
+      mainAxisSize: MainAxisSize.max,
       children: <Widget>[
         Icon(
           Icons.my_location,
@@ -166,6 +214,7 @@ class BreadcrumbsWidget extends StatelessWidget {
               (item) => [
                     const Text('/'),
                     FlatButton(
+                      textTheme: ButtonTextTheme.primary,
                       onPressed: () {
                         Provider.of<ContentEditorBloc>(context).changePath(item.path);
                       },
@@ -174,64 +223,143 @@ class BreadcrumbsWidget extends StatelessWidget {
                   ],
             )
             .skip(1),
+        Expanded(child: Container()),
+        StreamBuilder<ContentModifications>(
+          stream: contentEditorBloc.modificationsChanged,
+          builder: (context, snapshot) {
+            _logger.finer('got modification data $snapshot');
+            if (snapshot.hasData && snapshot.data.hasModifications) {
+              return RaisedButton.icon(
+                onPressed: () {
+                  Provider.of<Deps>(context)
+                      .apiService
+                      .saveModifications(contentEditorBloc.path, snapshot.data.updates)
+                      .then((result) {
+                    if (result.unsaved.isEmpty) {
+                      contentEditorBloc.changePath(contentEditorBloc.path);
+                    } else {
+                      _logger.warning('There have been unsaved changes. $result');
+                    }
+                  });
+                },
+                icon: Icon(Icons.save),
+                label: Text('Save ${snapshot.data.updates.length} changes'),
+              );
+            } else {
+              return Container();
+            }
+          },
+        ),
       ],
     );
   }
 }
 
-class ContentProperties extends StatelessWidget {
-  const ContentProperties({Key key, this.reflect}) : super(key: key);
+typedef void OnPropertyChanged(String name, dynamic value);
 
-  final ContentDefReflect reflect;
+class ContentProperties extends StatelessWidget {
+  const ContentProperties({
+    Key key,
+    @required this.reflection,
+    @required this.content,
+    @required this.children,
+    @required this.types,
+    @required this.onValueChanged,
+  }) : super(key: key);
+
+//  final ContentDefReflect reflect;
+  final ContentDefReflection reflection;
+  final Map<String, dynamic> content;
+  final Map<String, List<ContentDefChild>> children;
+  final Map<String, ContentDefReflection> types;
+  final OnPropertyChanged onValueChanged;
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: ListView(
-        shrinkWrap: false,
-        children: reflect.reflection.properties.map((prop) {
-          if (prop.kind == ContentDefKind.Primitive) {
-            final dynamic value = reflect.content[prop.name];
-            return PrimitiveContentProperty(
-              prop: prop,
-              initialValue: value,
-            );
-          }
-          return ExpansionTile(
-            key: PageStorageKey(prop.name),
-            leading: Icon(Icons.subdirectory_arrow_right),
-            title: Text('${prop.name} (${prop.kind})'),
-            backgroundColor: Colors.white,
-            children: <Widget>[
-              ListTile(
-                leading: Icon(Icons.bug_report),
-                title: Text(
-                  'Deeebug. ${prop.toJson()}',
-                  style: Theme.of(context).textTheme.body1.apply(fontSizeFactor: 0.75, color: Colors.black38),
-                ),
-              ),
-              ..._propertyDetails(prop, context),
-            ],
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+//      shrinkWrap: false,
+      children: reflection.properties.map((prop) {
+        if (prop.kind == ContentDefKind.Primitive) {
+          final dynamic value = content[prop.name];
+          return PrimitiveContentProperty(
+            prop: prop,
+            initialValue: value,
+            onValueChanged: (dynamic val) {
+//              content[prop.name] = val;
+              _logger.finest('Property for ${prop.name} changed to $val');
+              onValueChanged(prop.name, val);
+            },
           );
-        }).toList(),
-      ),
+        }
+        return ExpansionTile(
+          key: PageStorageKey(prop.name),
+          leading: Icon(Icons.subdirectory_arrow_right),
+          title: Text('${prop.name} (${prop.kind})'),
+          backgroundColor: Colors.white,
+          children: <Widget>[
+            ..._propertyDetails(prop, context),
+          ],
+        );
+      }).toList(),
     );
   }
 
+  Widget _debug(ContentDefPropertyReflection prop, BuildContext context) => ListTile(
+        leading: Icon(Icons.bug_report),
+        title: Text(
+          'Deeebug. ${prop.toJson()}',
+          style: Theme.of(context).textTheme.body1.apply(fontSizeFactor: 0.75, color: Colors.black38),
+        ),
+      );
+
   List<Widget> _propertyDetails(ContentDefPropertyReflection prop, BuildContext context) {
     if (prop.kind == ContentDefKind.Nested) {
-      return reflect.children[prop.name]?.map((child) {
-            return ListTile(
-              leading: Icon(Icons.link),
-              title: Text('${child.path}'),
-              onTap: () {
-                Provider.of<ContentEditorBloc>(context).changePath(child.path);
-              },
-            );
-          })?.toList() ??
-          [];
+      final children = this.children[prop.name];
+      if (children != null) {
+        return children.map((child) {
+          return ListTile(
+            leading: Icon(Icons.link),
+            title: Text('${child.path}'),
+            onTap: () {
+              Provider.of<ContentEditorBloc>(context).changePath(child.path);
+            },
+          );
+        })?.toList();
+      } else {
+        final dynamic subContent = content[prop.name];
+        if (subContent is Map) {
+          final content = subContent.cast<String, dynamic>();
+          final subReflection = types[prop.baseType];
+          return [
+            FutureBuilder<ContentDefReflection>(
+              initialData: subReflection,
+              future: subReflection != null ? null : Provider.of<Deps>(context).apiService.reflectType(prop.baseType),
+              builder: (context, snapshot) => !snapshot.hasData
+                  ? Container()
+                  : Container(
+                      decoration: BoxDecoration(border: Border(left: BorderSide(color: Colors.green, width: 4))),
+                      child: ContentProperties(
+                        reflection: snapshot.data,
+                        content: content,
+                        children: {},
+                        types: types,
+                        onValueChanged: (String name, dynamic val) {
+                          content[name] = val;
+                          onValueChanged(prop.name, content);
+                        },
+                      ),
+                    ),
+            ),
+          ];
+        } else {
+          // TODO allow to create?
+          return [_debug(prop, context)];
+        }
+      }
     } else if (prop.kind == ContentDefKind.Parsable) {
-      final content = reflect.children[prop.name]?.first?.rawContent;
+      final content = children[prop.name]?.first?.rawContent;
+      _logger.fine('text content: ($content)');
       return [
         TextField(
           // workaround: add key, otherwise it seems the scrolling of the ListView is confused
@@ -241,26 +369,33 @@ class ContentProperties extends StatelessWidget {
             helperText: '${prop.parsableHint}',
           ),
           controller: TextEditingController(text: content ?? ''),
+          onChanged: (value) {
+            _logger.fine('got text field modification. {$value}');
+            Provider.of<ContentEditorBloc>(context).addModificationUpdate(prop.name, value);
+          },
           style: Theme.of(context).textTheme.body1.copyWith(fontFamily: 'RobotoMono'),
           maxLines: null,
-          minLines: 10,
+          minLines: 14,
         ),
       ];
     }
-    return [
-      ListTile(
-        title: Text('lorem'),
-      ),
-    ];
-    return [];
+    return [_debug(prop, context)];
   }
 }
 
+typedef void OnValueChanged(dynamic value);
+
 class PrimitiveContentProperty extends StatefulWidget {
-  const PrimitiveContentProperty({Key key, this.prop, this.initialValue}) : super(key: key);
+  const PrimitiveContentProperty({
+    Key key,
+    @required this.prop,
+    this.initialValue,
+    @required this.onValueChanged,
+  }) : super(key: key);
 
   final ContentDefPropertyReflection prop;
   final dynamic initialValue;
+  final OnValueChanged onValueChanged;
 
   @override
   _PrimitiveContentPropertyState createState() => _PrimitiveContentPropertyState();
@@ -296,6 +431,7 @@ class _PrimitiveContentPropertyState extends State<PrimitiveContentProperty> {
               onChanged: (val) {
                 setState(() {
                   value = val;
+                  widget.onValueChanged(val);
                 });
               },
             ),
@@ -304,17 +440,27 @@ class _PrimitiveContentPropertyState extends State<PrimitiveContentProperty> {
       case PrimitiveType.String:
         return ListTile(
           leading: Icon(Icons.edit),
+          selected: false,
+          enabled: false,
           title: TextField(
+            // workaround: add key, otherwise it seems the scrolling of the ListView is confused
+            // with the scrolling of the text field.
+            key: PageStorageKey('${prop.name}/${DateTime.now()}'),
             decoration: InputDecoration(
               labelText: prop.name,
             ),
             controller: TextEditingController(text: value?.toString()),
+            onChanged: (value) {
+              _logger.fine('got text field modification. {$value}');
+              widget.onValueChanged(value);
+            },
           ),
         );
       case PrimitiveType.ZonedDateTime:
         return ListTile(
           leading: Icon(Icons.calendar_today),
-          title: Text(prop.name + ': ' + (value == null ? 'Not set' : '$value (${value.runtimeType})')),
+          selected: false,
+          title: Text(prop.name + ': ' + (value == null ? 'Not set' : '$value')),
           onTap: () {
             _logger.fine('opening date picker. example format ${isoFormat.format(DateTime.now())}');
             DatePicker.showDateTimePicker(

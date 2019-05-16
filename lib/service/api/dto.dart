@@ -3,6 +3,28 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'dto.g.dart';
 
+@JsonSerializable(nullable: false)
+class ReflectTypeResponse {
+  ReflectTypeResponse({this.types,});
+  factory ReflectTypeResponse.fromJson(Map<String, dynamic> json) => _$ReflectTypeResponseFromJson(json);
+  Map<String, dynamic> toJson() => _$ReflectTypeResponseToJson(this);
+  
+  final Map<String, ContentDefReflection> types;
+}
+
+
+@JsonSerializable(nullable: false)
+class UpdateResult {
+  UpdateResult({this.status, this.unsaved});
+
+  factory UpdateResult.fromJson(Map<String, dynamic> json) => _$UpdateResultFromJson(json);
+
+  Map<String, dynamic> toJson() => _$UpdateResultToJson(this);
+
+  final String status;
+  final List<String> unsaved;
+}
+
 @JsonSerializable()
 class ContentDefReflect {
   ContentDefReflect({
@@ -10,6 +32,7 @@ class ContentDefReflect {
     @required this.breadcrumbs,
     @required this.children,
     @required this.reflection,
+    @required this.types,
   });
 
   factory ContentDefReflect.fromJson(Map<String, dynamic> json) => _$ContentDefReflectFromJson(json);
@@ -18,6 +41,7 @@ class ContentDefReflect {
   final List<BreadcrumbsItem> breadcrumbs;
   final Map<String, List<ContentDefChild>> children;
   final ContentDefReflection reflection;
+  final Map<String, ContentDefReflection> types;
 
   Map<String, dynamic> toJson() => _$ContentDefReflectToJson(this);
 }
@@ -51,6 +75,7 @@ class ContentDefChild {
 
   final String path;
   final bool isProperty;
+
   /// for parsable content, contains the raw string representation.
   final String rawContent;
 }

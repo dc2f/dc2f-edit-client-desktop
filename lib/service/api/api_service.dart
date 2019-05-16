@@ -21,14 +21,35 @@ class ApiService {
     }
     return _logApiError(apiCaller.get('/reflect$path').then((json) => ContentDefReflect.fromJson(json)));
   }
+
+  Future<UpdateResult> saveModifications(String path, Map<String, dynamic> updates) {
+    _logger.finest('Saving modifications.');
+    return _logApiError(
+      apiCaller.patch('/update$path', data: <String, dynamic>{'updates': updates}).then((json) {
+        _logger.finest('Got update response $json');
+        return UpdateResult.fromJson(json);
+      }),
+    );
+  }
+
+  Future<ReflectTypeResponse> reflectTypes(Set<String> type) {
+    // TODO cache reflected types..
+    return _logApiError(
+      apiCaller
+          .get(Uri(path: '/type/', queryParameters: <String, dynamic>{'type': type}).toString().toString())
+          .then((json) => ReflectTypeResponse.fromJson(json)),
+    );
+  }
+
+  Future<ContentDefReflection> reflectType(String baseType) {
+    return reflectTypes({baseType}).then((val) => val.types[baseType]);
+  }
 }
 
-Future<T> _logApiError<T>(Future<T> then) =>
-    then.catchError((dynamic err, StackTrace stackTrace) {
+Future<T> _logApiError<T>(Future<T> then) => then.catchError((dynamic err, StackTrace stackTrace) {
       _logger.warning('Error during api call.', err, stackTrace);
       return Future<T>.error(err, stackTrace);
     });
-
 
 class ApiCallerException implements Exception {
   ApiCallerException(this.message);
@@ -49,7 +70,6 @@ class BadRequestException extends ApiCallerException {
   BadRequestException(String message) : super(message);
 }
 
-
 class ApiCaller {
   ApiCaller({@required String apiEndpoint}) : apiEndpoint = apiEndpoint.replaceAll(RegExp(r'/+$'), '');
 
@@ -68,7 +88,7 @@ class ApiCaller {
         method: method,
         responseType: ResponseType.plain,
         validateStatus: (status) =>
-        status == HttpStatus.ok || status == HttpStatus.unauthorized || status == HttpStatus.badRequest,
+            status == HttpStatus.ok || status == HttpStatus.unauthorized || status == HttpStatus.badRequest,
         headers: null,
       ),
     )
@@ -91,8 +111,7 @@ class ApiCaller {
     });
   }
 
-  Future<Map<String, dynamic>> post(String path,
-      {Map<String, dynamic> data, bool ignoreOkResult = false}) {
+  Future<Map<String, dynamic>> post(String path, {Map<String, dynamic> data, bool ignoreOkResult = false}) {
     return _callApi(
       path,
       method: 'POST',
@@ -101,8 +120,7 @@ class ApiCaller {
     );
   }
 
-  Future<Map<String, dynamic>> put(String path,
-      {Map<String, dynamic> data, bool ignoreOkResult = false}) {
+  Future<Map<String, dynamic>> put(String path, {Map<String, dynamic> data, bool ignoreOkResult = false}) {
     return _callApi(
       path,
       method: 'PUT',
@@ -120,8 +138,7 @@ class ApiCaller {
     );
   }
 
-  Future<Map<String, dynamic>> patch(String path,
-      {Map<String, dynamic> data, bool ignoreOkResult = false}) {
+  Future<Map<String, dynamic>> patch(String path, {Map<String, dynamic> data, bool ignoreOkResult = false}) {
     return _callApi(
       path,
       method: 'PATCH',

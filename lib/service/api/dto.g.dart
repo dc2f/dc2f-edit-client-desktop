@@ -6,6 +6,27 @@ part of 'dto.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+ReflectTypeResponse _$ReflectTypeResponseFromJson(Map<String, dynamic> json) {
+  return ReflectTypeResponse(
+      types: (json['types'] as Map<String, dynamic>).map(
+    (k, e) =>
+        MapEntry(k, ContentDefReflection.fromJson(e as Map<String, dynamic>)),
+  ));
+}
+
+Map<String, dynamic> _$ReflectTypeResponseToJson(
+        ReflectTypeResponse instance) =>
+    <String, dynamic>{'types': instance.types};
+
+UpdateResult _$UpdateResultFromJson(Map<String, dynamic> json) {
+  return UpdateResult(
+      status: json['status'] as String,
+      unsaved: (json['unsaved'] as List).map((e) => e as String).toList());
+}
+
+Map<String, dynamic> _$UpdateResultToJson(UpdateResult instance) =>
+    <String, dynamic>{'status': instance.status, 'unsaved': instance.unsaved};
+
 ContentDefReflect _$ContentDefReflectFromJson(Map<String, dynamic> json) {
   return ContentDefReflect(
       content: json['content'] as Map<String, dynamic>,
@@ -26,7 +47,14 @@ ContentDefReflect _$ContentDefReflectFromJson(Map<String, dynamic> json) {
       reflection: json['reflection'] == null
           ? null
           : ContentDefReflection.fromJson(
-              json['reflection'] as Map<String, dynamic>));
+              json['reflection'] as Map<String, dynamic>),
+      types: (json['types'] as Map<String, dynamic>)?.map(
+        (k, e) => MapEntry(
+            k,
+            e == null
+                ? null
+                : ContentDefReflection.fromJson(e as Map<String, dynamic>)),
+      ));
 }
 
 Map<String, dynamic> _$ContentDefReflectToJson(ContentDefReflect instance) =>
@@ -34,7 +62,8 @@ Map<String, dynamic> _$ContentDefReflectToJson(ContentDefReflect instance) =>
       'content': instance.content,
       'breadcrumbs': instance.breadcrumbs,
       'children': instance.children,
-      'reflection': instance.reflection
+      'reflection': instance.reflection,
+      'types': instance.types
     };
 
 BreadcrumbsItem _$BreadcrumbsItemFromJson(Map<String, dynamic> json) {

@@ -4,6 +4,7 @@ ThemeData createTheme() {
   final theme = ThemeData(
     primarySwatch: Colors.deepPurple,
     primaryColor: Colors.deepPurple[50],
+//    accentColor: Colors.deepOrange,
     // See https://github.com/flutter/flutter/wiki/Desktop-shells#fonts
     fontFamily: 'Roboto',
   );
@@ -14,6 +15,8 @@ ThemeData createTheme() {
   return theme.copyWith(
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
+      fillColor: Colors.deepPurple[50].withOpacity(0.3),
+      labelStyle: TextStyle(color: Colors.deepPurple),
 //    enabledBorder: border,
 //    focusedBorder: border,
 //      border: border,
