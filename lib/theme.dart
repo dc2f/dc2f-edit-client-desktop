@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
+final primaryColor = Colors.deepPurple[50];
+final darkPrimaryColor = Colors.deepPurple[500];
+
 ThemeData createTheme() {
   final theme = ThemeData(
     primarySwatch: Colors.deepPurple,
-    primaryColor: Colors.deepPurple[50],
+    primaryColor: primaryColor,
 //    accentColor: Colors.deepOrange,
     // See https://github.com/flutter/flutter/wiki/Desktop-shells#fonts
     fontFamily: 'Roboto',

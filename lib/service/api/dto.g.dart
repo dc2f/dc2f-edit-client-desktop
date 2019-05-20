@@ -112,7 +112,8 @@ ContentDefPropertyReflection _$ContentDefPropertyReflectionFromJson(
       allowedTypes: (json['allowedTypes'] as Map<String, dynamic>)?.map(
         (k, e) => MapEntry(k, e as String),
       ),
-      baseType: json['baseType'] as String);
+      baseType: json['baseType'] as String,
+      mapValueType: json['mapValueType'] as String);
 }
 
 Map<String, dynamic> _$ContentDefPropertyReflectionToJson(
@@ -125,7 +126,8 @@ Map<String, dynamic> _$ContentDefPropertyReflectionToJson(
       'type': _$PrimitiveTypeEnumMap[instance.type],
       'allowedTypes': instance.allowedTypes,
       'baseType': instance.baseType,
-      'parsableHint': instance.parsableHint
+      'parsableHint': instance.parsableHint,
+      'mapValueType': instance.mapValueType
     };
 
 T _$enumDecode<T>(Map<T, dynamic> enumValues, dynamic source) {

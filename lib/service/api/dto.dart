@@ -5,13 +5,16 @@ part 'dto.g.dart';
 
 @JsonSerializable(nullable: false)
 class ReflectTypeResponse {
-  ReflectTypeResponse({this.types,});
+  ReflectTypeResponse({
+    this.types,
+  });
+
   factory ReflectTypeResponse.fromJson(Map<String, dynamic> json) => _$ReflectTypeResponseFromJson(json);
+
   Map<String, dynamic> toJson() => _$ReflectTypeResponseToJson(this);
-  
+
   final Map<String, ContentDefReflection> types;
 }
-
 
 @JsonSerializable(nullable: false)
 class UpdateResult {
@@ -108,6 +111,7 @@ class ContentDefPropertyReflection {
     this.parsableHint,
     this.allowedTypes,
     this.baseType,
+    this.mapValueType,
   });
 
   factory ContentDefPropertyReflection.fromJson(Map<String, dynamic> json) =>
@@ -129,4 +133,7 @@ class ContentDefPropertyReflection {
 
   // kind == parsable
   final String parsableHint;
+
+  // kind == map
+  final String mapValueType;
 }

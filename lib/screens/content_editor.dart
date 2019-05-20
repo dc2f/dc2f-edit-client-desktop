@@ -1,13 +1,14 @@
 import 'package:dc2f_edit_client_desktop/service/api/dto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
-import 'package:intl/intl.dart';
 
 import '../deps.dart';
+import '../theme.dart';
 
 final _logger = Logger('content_editor');
 
@@ -17,6 +18,11 @@ class ContentModifications {
   final Map<String, dynamic> updates;
 
   bool get hasModifications => updates.isNotEmpty;
+
+  @override
+  String toString() {
+    return '{ContentModifications: updates=$updates}';
+  }
 }
 
 class ContentEditorBloc {
@@ -169,7 +175,7 @@ class _ContentEditorState extends State<ContentEditor> {
                                       types: snapshot.data.types,
                                       onValueChanged: (String name, dynamic value) {
                                         _logger.finest('Property $name changed to $value');
-                                          _contentEditorBloc.addModificationUpdate(name, value);
+                                        _contentEditorBloc.addModificationUpdate(name, value);
                                       },
                                     ),
                                   ),
@@ -257,6 +263,14 @@ class BreadcrumbsWidget extends StatelessWidget {
 
 typedef void OnPropertyChanged(String name, dynamic value);
 
+Color _propertyIconColor(ContentDefPropertyReflection prop) {
+  if (prop.optional) {
+    return Colors.black12;
+  } else {
+    return darkPrimaryColor;
+  }
+}
+
 class ContentProperties extends StatelessWidget {
   const ContentProperties({
     Key key,
@@ -294,7 +308,10 @@ class ContentProperties extends StatelessWidget {
         }
         return ExpansionTile(
           key: PageStorageKey(prop.name),
-          leading: Icon(Icons.subdirectory_arrow_right),
+          leading: Icon(
+            Icons.subdirectory_arrow_right,
+            color: _propertyIconColor(prop),
+          ),
           title: Text('${prop.name} (${prop.kind})'),
           backgroundColor: Colors.white,
           children: <Widget>[
@@ -305,10 +322,10 @@ class ContentProperties extends StatelessWidget {
     );
   }
 
-  Widget _debug(ContentDefPropertyReflection prop, BuildContext context) => ListTile(
+  Widget _debug(ContentDefPropertyReflection prop, BuildContext context, dynamic subContent) => ListTile(
         leading: Icon(Icons.bug_report),
         title: Text(
-          'Deeebug. ${prop.toJson()}',
+          'Deeebug. ${prop.toJson()} - subContent: $subContent',
           style: Theme.of(context).textTheme.body1.apply(fontSizeFactor: 0.75, color: Colors.black38),
         ),
       );
@@ -317,17 +334,63 @@ class ContentProperties extends StatelessWidget {
     if (prop.kind == ContentDefKind.Nested) {
       final children = this.children[prop.name];
       if (children != null) {
-        return children.map((child) {
-          return ListTile(
-            leading: Icon(Icons.link),
-            title: Text('${child.path}'),
-            onTap: () {
-              Provider.of<ContentEditorBloc>(context).changePath(child.path);
-            },
-          );
-        })?.toList();
+        return (children.map((child) {
+                  return ListTile(
+                    leading: Icon(
+                      Icons.link,
+                      color: _propertyIconColor(prop),
+                    ),
+                    title: Text('${child.path}'),
+                    onTap: () {
+                      Provider.of<ContentEditorBloc>(context).changePath(child.path);
+                    },
+                  );
+                })?.toList() ??
+                []) +
+            [
+              ListTile(
+                leading: Icon(
+                  Icons.add,
+                  color: _propertyIconColor(prop),
+                ),
+                title: const Text('Create new item'),
+                onTap: () {
+                  showModalBottomSheet<MapEntry<String, String>>(
+                    context: context,
+                    builder: (context) {
+                      return BottomSheet(
+                          onClosing: () {},
+                          builder: (context) {
+                            return Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: prop.allowedTypes?.entries?.map((entry) {
+                                    return ListTile(
+                                      leading: Icon(Icons.add),
+                                      title: Text('${entry.key} (${entry.value})'),
+                                      onTap: () => Navigator.of(context).pop(entry),
+                                    );
+                                  })?.toList() ??
+                                  [],
+                            );
+                          });
+                    },
+                  ).then((entry) {
+                    if (entry == null) {
+                      return;
+                    }
+                    Navigator.of(context).push(MaterialPageRoute<void>(
+                      builder: (context) => CreateContentObject(
+                            typeIdentifier: entry.key,
+                            type: entry.value,
+                          ),
+                    ));
+                    _logger.info('Creating new $entry.');
+                  });
+                },
+              ),
+            ];
       } else {
-        final dynamic subContent = content[prop.name];
+        final dynamic subContent = content[prop.name] ?? (prop.multiValue ? null : <String, dynamic>{});
         if (subContent is Map) {
           final content = subContent.cast<String, dynamic>();
           final subReflection = types[prop.baseType];
@@ -354,7 +417,7 @@ class ContentProperties extends StatelessWidget {
           ];
         } else {
           // TODO allow to create?
-          return [_debug(prop, context)];
+          return [_debug(prop, context, subContent)];
         }
       }
     } else if (prop.kind == ContentDefKind.Parsable) {
@@ -371,15 +434,69 @@ class ContentProperties extends StatelessWidget {
           controller: TextEditingController(text: content ?? ''),
           onChanged: (value) {
             _logger.fine('got text field modification. {$value}');
-            Provider.of<ContentEditorBloc>(context).addModificationUpdate(prop.name, value);
+            onValueChanged(prop.name, value);
           },
           style: Theme.of(context).textTheme.body1.copyWith(fontFamily: 'RobotoMono'),
           maxLines: null,
           minLines: 14,
         ),
       ];
+    } else if (prop.kind == ContentDefKind.Map) {
+      final dynamic subContent = content[prop.name];
+      if (subContent is Map) {
+        final subContentMap = subContent.cast<String, dynamic>();
+        assert(prop.mapValueType != null);
+        return subContentMap.entries.map((entry) {
+          if (entry.value is! Map) {
+            return ExpansionTile(
+                key: PageStorageKey('nested${entry.key}'),
+                leading: Icon(Icons.label, color: _propertyIconColor(prop)),
+                title: Text(entry.key + ' -- not yet supported (${prop.mapValueType} for ${entry.value.runtimeType})'),
+                initiallyExpanded: false,
+                children: <Widget>[]);
+          }
+          final entryValue = entry.value as Map<String, dynamic>;
+          return Container(
+            decoration: BoxDecoration(border: Border(left: BorderSide(color: Colors.green, width: 4))),
+            child: ExpansionTile(
+              key: PageStorageKey('nested${entry.key}'),
+              leading: Icon(Icons.label, color: _propertyIconColor(prop)),
+              title: Text(entry.key),
+              initiallyExpanded: false,
+              children: <Widget>[
+                FutureBuilder<ContentDefReflection>(
+                  initialData: null,
+                  future: Provider.of<Deps>(context).apiService.reflectType(prop.mapValueType),
+                  builder: (context, snapshot) => !snapshot.hasData
+                      ? Container()
+                      : Container(
+                          decoration: BoxDecoration(border: Border(left: BorderSide(color: Colors.green, width: 4))),
+                          child: ContentProperties(
+                            reflection: snapshot.data,
+                            content: entryValue,
+                            children: {},
+                            types: types,
+                            onValueChanged: (String name, dynamic val) {
+                              entryValue[name] = val;
+                              onValueChanged(prop.name, subContentMap);
+                            },
+                          ),
+                        ),
+                )
+              ],
+            ),
+          );
+//          return ContentProperties(reflection: reflection,
+//              content: (entry.value as Map<String, dynamic>),
+//              children: {},
+//              types: types,
+//              onValueChanged: (key, dynamic value) {
+//
+//              });
+        }).toList();
+      }
     }
-    return [_debug(prop, context)];
+    return [_debug(prop, context, null)];
   }
 }
 
@@ -411,6 +528,13 @@ class _PrimitiveContentPropertyState extends State<PrimitiveContentProperty> {
     value = widget.initialValue;
   }
 
+  String _multiValueToString(dynamic value) {
+    if (value is List) {
+      return value.cast<String>().join(', ');
+    }
+    return value?.toString();
+  }
+
   @override
   Widget build(BuildContext context) {
     final prop = widget.prop;
@@ -425,7 +549,7 @@ class _PrimitiveContentPropertyState extends State<PrimitiveContentProperty> {
               });
             },
             child: SwitchListTile(
-              secondary: Icon(Icons.edit),
+              secondary: Icon(Icons.edit, color: _propertyIconColor(prop)),
               title: Text('${prop.name}${prop.optional ? '' : ' *'}'),
               value: value as bool ?? false,
               onChanged: (val) {
@@ -439,7 +563,7 @@ class _PrimitiveContentPropertyState extends State<PrimitiveContentProperty> {
         );
       case PrimitiveType.String:
         return ListTile(
-          leading: Icon(Icons.edit),
+          leading: Icon(Icons.edit, color: _propertyIconColor(prop)),
           selected: false,
           enabled: false,
           title: TextField(
@@ -448,17 +572,24 @@ class _PrimitiveContentPropertyState extends State<PrimitiveContentProperty> {
             key: PageStorageKey('${prop.name}/${DateTime.now()}'),
             decoration: InputDecoration(
               labelText: prop.name,
+              helperText: prop.multiValue ? 'Multivalue: Enter comma separated values.' : null,
             ),
-            controller: TextEditingController(text: value?.toString()),
+            controller: TextEditingController(text: prop.multiValue ? _multiValueToString(value) : value?.toString()),
             onChanged: (value) {
-              _logger.fine('got text field modification. {$value}');
-              widget.onValueChanged(value);
+              if (prop.multiValue) {
+                final multiValue = value.trim().split(RegExp(r'\s*,\s*'));
+                _logger.fine('saving text modification as multivalue: $multiValue');
+                widget.onValueChanged(multiValue);
+              } else {
+                _logger.fine('got text field modification. {$value}');
+                widget.onValueChanged(value);
+              }
             },
           ),
         );
       case PrimitiveType.ZonedDateTime:
         return ListTile(
-          leading: Icon(Icons.calendar_today),
+          leading: Icon(Icons.calendar_today, color: _propertyIconColor(prop)),
           selected: false,
           title: Text(prop.name + ': ' + (value == null ? 'Not set' : '$value')),
           onTap: () {
@@ -476,10 +607,97 @@ class _PrimitiveContentPropertyState extends State<PrimitiveContentProperty> {
         );
       case PrimitiveType.Unknown:
         return ListTile(
-          leading: Icon(Icons.broken_image),
+          leading: Icon(Icons.broken_image, color: _propertyIconColor(prop)),
           title: Text('Unsupported property ${prop.name} for now. ${prop.type}.'),
         );
     }
     throw ArgumentError('Invalid property type ${prop.type}');
+  }
+}
+
+class CreateContentBloc {
+  CreateContentBloc() {
+    _data.add(ContentModifications());
+  }
+
+  BehaviorSubject<ContentModifications> _data = BehaviorSubject();
+
+  ValueObservable<ContentModifications> get onDataChanged => _data.stream;
+
+  void addModificationUpdate(String name, dynamic value) {
+    _data.add(ContentModifications(updates: <String, dynamic>{
+      ..._data.value.updates,
+      name: value,
+    }));
+  }
+}
+
+class CreateContentObject extends StatefulWidget {
+  const CreateContentObject({Key key, this.typeIdentifier, this.type}) : super(key: key);
+
+  final String typeIdentifier;
+  final String type;
+
+  @override
+  _CreateContentObjectState createState() => _CreateContentObjectState();
+}
+
+class _CreateContentObjectState extends State<CreateContentObject> {
+  CreateContentBloc bloc = CreateContentBloc();
+  GlobalKey<FormState> _formKey = GlobalKey();
+
+  @override
+  Widget build(BuildContext context) {
+//    final bloc = Provider.of<ContentEditorBloc>(context);
+    final deps = Provider.of<Deps>(context);
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Create content "${widget.typeIdentifier}"'),
+      ),
+      body: Column(
+        mainAxisSize: MainAxisSize.max,
+        children: <Widget>[
+          const Padding(padding: EdgeInsets.only(top: 8)),
+          ListTile(
+            title: TextField(
+              decoration: InputDecoration(labelText: 'Slug/Name for the new object'),
+            ),
+            trailing: RaisedButton.icon(
+              icon: Icon(Icons.save),
+              label: const Text('Create'),
+              onPressed: () {
+                if (_formKey.currentState?.validate() == true) {
+                  _logger.finest('We can safe this thing as ${bloc._data.value}');
+                }
+              },
+            ),
+          ),
+          const Padding(padding: EdgeInsets.only(top: 8)),
+          FutureBuilder<ContentDefReflection>(
+              future: deps.apiService.reflectType(widget.type),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const CircularProgressIndicator();
+                }
+                return Form(
+                  key: _formKey,
+                  child: Expanded(
+                    child: SingleChildScrollView(
+                      child: ContentProperties(
+                        reflection: snapshot.data,
+                        content: <String, dynamic>{},
+                        children: <String, List<ContentDefChild>>{},
+                        types: {},
+                        onValueChanged: (String name, dynamic value) {
+                          bloc.addModificationUpdate(name, value);
+                        },
+                      ),
+                    ),
+                  ),
+                );
+              }),
+        ],
+      ),
+    );
   }
 }
