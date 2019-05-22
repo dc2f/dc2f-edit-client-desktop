@@ -87,18 +87,26 @@ class ContentDefChild {
 class ContentDefReflection {
   ContentDefReflection({
     this.properties,
+    this.type,
+    this.typeIdentifier,
+    this.defaultValues,
   });
 
   factory ContentDefReflection.fromJson(Map<String, dynamic> json) => _$ContentDefReflectionFromJson(json);
 
   Map<String, dynamic> toJson() => _$ContentDefReflectionToJson(this);
 
+  final String type;
+  final String typeIdentifier;
+  final Map<String, dynamic> defaultValues;
   final List<ContentDefPropertyReflection> properties;
 }
 
 enum PrimitiveType { String, Boolean, ZonedDateTime, Unknown }
 
-enum ContentDefKind { Parsable, Primitive, Map, Nested }
+enum ContentDefKind { Parsable, Primitive, Map, Nested, File, ContentReference, Enum }
+
+enum FileType { File, Image }
 
 @JsonSerializable(nullable: true)
 class ContentDefPropertyReflection {
@@ -112,6 +120,8 @@ class ContentDefPropertyReflection {
     this.allowedTypes,
     this.baseType,
     this.mapValueType,
+    this.fileType,
+    this.enumValues,
   });
 
   factory ContentDefPropertyReflection.fromJson(Map<String, dynamic> json) =>
@@ -136,4 +146,24 @@ class ContentDefPropertyReflection {
 
   // kind == map
   final String mapValueType;
+
+  // kind == file
+  final FileType fileType;
+
+  // kind == enum
+  final List<String> enumValues;
+}
+
+@JsonSerializable(nullable: false)
+class ContentCreate {
+  ContentCreate({this.typeIdentifier, this.property, this.slug, this.content});
+
+  factory ContentCreate.fromJson(Map<String, dynamic> json) => _$ContentCreateFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ContentCreateToJson(this);
+
+  final String typeIdentifier;
+  final String property;
+  final String slug;
+  final Map<String, dynamic> content;
 }

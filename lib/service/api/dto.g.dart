@@ -93,12 +93,20 @@ ContentDefReflection _$ContentDefReflectionFromJson(Map<String, dynamic> json) {
       properties: (json['properties'] as List)
           .map((e) =>
               ContentDefPropertyReflection.fromJson(e as Map<String, dynamic>))
-          .toList());
+          .toList(),
+      type: json['type'] as String,
+      typeIdentifier: json['typeIdentifier'] as String,
+      defaultValues: json['defaultValues'] as Map<String, dynamic>);
 }
 
 Map<String, dynamic> _$ContentDefReflectionToJson(
         ContentDefReflection instance) =>
-    <String, dynamic>{'properties': instance.properties};
+    <String, dynamic>{
+      'type': instance.type,
+      'typeIdentifier': instance.typeIdentifier,
+      'defaultValues': instance.defaultValues,
+      'properties': instance.properties
+    };
 
 ContentDefPropertyReflection _$ContentDefPropertyReflectionFromJson(
     Map<String, dynamic> json) {
@@ -113,7 +121,10 @@ ContentDefPropertyReflection _$ContentDefPropertyReflectionFromJson(
         (k, e) => MapEntry(k, e as String),
       ),
       baseType: json['baseType'] as String,
-      mapValueType: json['mapValueType'] as String);
+      mapValueType: json['mapValueType'] as String,
+      fileType: _$enumDecodeNullable(_$FileTypeEnumMap, json['fileType']),
+      enumValues:
+          (json['enumValues'] as List)?.map((e) => e as String)?.toList());
 }
 
 Map<String, dynamic> _$ContentDefPropertyReflectionToJson(
@@ -127,7 +138,9 @@ Map<String, dynamic> _$ContentDefPropertyReflectionToJson(
       'allowedTypes': instance.allowedTypes,
       'baseType': instance.baseType,
       'parsableHint': instance.parsableHint,
-      'mapValueType': instance.mapValueType
+      'mapValueType': instance.mapValueType,
+      'fileType': _$FileTypeEnumMap[instance.fileType],
+      'enumValues': instance.enumValues
     };
 
 T _$enumDecode<T>(Map<T, dynamic> enumValues, dynamic source) {
@@ -154,7 +167,10 @@ const _$ContentDefKindEnumMap = <ContentDefKind, dynamic>{
   ContentDefKind.Parsable: 'Parsable',
   ContentDefKind.Primitive: 'Primitive',
   ContentDefKind.Map: 'Map',
-  ContentDefKind.Nested: 'Nested'
+  ContentDefKind.Nested: 'Nested',
+  ContentDefKind.File: 'File',
+  ContentDefKind.ContentReference: 'ContentReference',
+  ContentDefKind.Enum: 'Enum'
 };
 
 const _$PrimitiveTypeEnumMap = <PrimitiveType, dynamic>{
@@ -163,6 +179,27 @@ const _$PrimitiveTypeEnumMap = <PrimitiveType, dynamic>{
   PrimitiveType.ZonedDateTime: 'ZonedDateTime',
   PrimitiveType.Unknown: 'Unknown'
 };
+
+const _$FileTypeEnumMap = <FileType, dynamic>{
+  FileType.File: 'File',
+  FileType.Image: 'Image'
+};
+
+ContentCreate _$ContentCreateFromJson(Map<String, dynamic> json) {
+  return ContentCreate(
+      typeIdentifier: json['typeIdentifier'] as String,
+      property: json['property'] as String,
+      slug: json['slug'] as String,
+      content: json['content'] as Map<String, dynamic>);
+}
+
+Map<String, dynamic> _$ContentCreateToJson(ContentCreate instance) =>
+    <String, dynamic>{
+      'typeIdentifier': instance.typeIdentifier,
+      'property': instance.property,
+      'slug': instance.slug,
+      'content': instance.content
+    };
 
 // **************************************************************************
 // StaticTextGenerator

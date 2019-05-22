@@ -12,6 +12,10 @@ analyzer:
     # allow having TODOs in the code
     todo: ignore
     missing_typedef_parameters: ignore
+  exclude:
+    - tools/**
+    - plugins/**
+    - deps/**
 
 linter:
   rules:

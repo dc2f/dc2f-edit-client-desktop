@@ -17,6 +17,12 @@ dependencies:
   rxdart: ^0.22.0
   flutter_datetime_picker: ^1.2.0
   intl: ^0.15.8
+  file_chooser:
+    git:
+      url: https://github.com/google/flutter-desktop-embedding.git
+      path: plugins/file_chooser
+  path: ^1.6.2
+
 
   flutter:
     sdk: flutter

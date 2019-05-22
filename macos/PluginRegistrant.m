@@ -17,11 +17,12 @@
 // yet, adding a new plugin requires manually adding plugin registration.
 
 #import "PluginRegistrant.h"
+#import <FlutterEmbedderFileChooser/FlutterEmbedderFileChooser.h>
 
 @implementation PluginRegistrant
 
 + (void)registerWithRegistry:(NSObject<FLEPluginRegistry>*)registry {
-  // Add your plugin regitration here.
+    [FLEFileChooserPlugin registerWithRegistrar:registry];
 }
 
 @end

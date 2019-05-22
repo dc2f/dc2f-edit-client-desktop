@@ -43,3 +43,6 @@ packages
 # Ignore it since it just creates noise. When there's a system in place
 # for versioning this project relative to Flutter, remove this.
 pubspec.lock
+
+deps/.flutter_location_config
+

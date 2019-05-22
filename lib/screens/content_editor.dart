@@ -1,4 +1,5 @@
 import 'package:dc2f_edit_client_desktop/service/api/dto.dart';
+import 'package:dc2f_edit_client_desktop/utils/validators.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
@@ -9,6 +10,7 @@ import 'package:rxdart/rxdart.dart';
 
 import '../deps.dart';
 import '../theme.dart';
+import 'file_property_editor.dart';
 
 final _logger = Logger('content_editor');
 
@@ -108,6 +110,32 @@ class _PathEditorState extends State<PathEditor> {
   }
 }
 
+class ContentEditorHeader extends StatelessWidget {
+  const ContentEditorHeader({Key key, @required this.breadcrumbs, @required this.reflection}) : super(key: key);
+
+  final List<BreadcrumbsItem> breadcrumbs;
+  final ContentDefReflection reflection;
+
+  @override
+  Widget build(BuildContext context) {
+    return BreadcrumbsWidget(
+      breadcrumbs: breadcrumbs,
+      trailing: <Widget>[
+        Tooltip(
+          message: '${reflection.type}',
+          child: Text(
+              'Type: ' + (reflection.typeIdentifier != null
+                ? '${reflection.typeIdentifier ?? ''}\n(${reflection.type.split('.').last})'
+                : reflection.type.split('.').last),
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.body1.apply(heightFactor: 0.8, color: Colors.black12),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class ContentEditor extends StatefulWidget {
   @override
   _ContentEditorState createState() => _ContentEditorState();
@@ -152,8 +180,9 @@ class _ContentEditorState extends State<ContentEditor> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: <Widget>[
-                              BreadcrumbsWidget(
+                              ContentEditorHeader(
                                 breadcrumbs: snapshot.data.breadcrumbs,
+                                reflection: snapshot.data.reflection,
                               ),
                               Theme(
                                 data: Theme.of(context).copyWith(
@@ -201,75 +230,73 @@ class _ContentEditorState extends State<ContentEditor> {
 }
 
 class BreadcrumbsWidget extends StatelessWidget {
-  const BreadcrumbsWidget({Key key, @required this.breadcrumbs}) : super(key: key);
+  const BreadcrumbsWidget({Key key, @required this.breadcrumbs, this.trailing = const []}) : super(key: key);
 
   final List<BreadcrumbsItem> breadcrumbs;
+  final List<Widget> trailing;
 
   @override
   Widget build(BuildContext context) {
     final contentEditorBloc = Provider.of<ContentEditorBloc>(context);
-    return Row(
-      mainAxisSize: MainAxisSize.max,
-      children: <Widget>[
-        Icon(
-          Icons.my_location,
-          color: Colors.black38,
-        ),
-        ...breadcrumbs
-            .expand(
-              (item) => [
-                    const Text('/'),
-                    FlatButton(
-                      textTheme: ButtonTextTheme.primary,
-                      onPressed: () {
-                        Provider.of<ContentEditorBloc>(context).changePath(item.path);
-                      },
-                      child: Text(item.name == '' ? 'ROOT' : item.name),
-                    )
-                  ],
-            )
-            .skip(1),
-        Expanded(child: Container()),
-        StreamBuilder<ContentModifications>(
-          stream: contentEditorBloc.modificationsChanged,
-          builder: (context, snapshot) {
-            _logger.finer('got modification data $snapshot');
-            if (snapshot.hasData && snapshot.data.hasModifications) {
-              return RaisedButton.icon(
-                onPressed: () {
-                  Provider.of<Deps>(context)
-                      .apiService
-                      .saveModifications(contentEditorBloc.path, snapshot.data.updates)
-                      .then((result) {
-                    if (result.unsaved.isEmpty) {
-                      contentEditorBloc.changePath(contentEditorBloc.path);
-                    } else {
-                      _logger.warning('There have been unsaved changes. $result');
-                    }
-                  });
-                },
-                icon: Icon(Icons.save),
-                label: Text('Save ${snapshot.data.updates.length} changes'),
-              );
-            } else {
-              return Container();
-            }
-          },
-        ),
-      ],
+    return StreamBuilder<ContentModifications>(
+      stream: contentEditorBloc.modificationsChanged,
+      builder: (context, snapshot) {
+        return Row(
+          mainAxisSize: MainAxisSize.max,
+          children: <Widget>[
+            Icon(
+              Icons.my_location,
+              color: Colors.black38,
+            ),
+            ...breadcrumbs
+                .expand(
+                  (item) => [
+                        const Text('/'),
+                        FlatButton(
+                          textTheme: ButtonTextTheme.primary,
+                          onPressed: () {
+                            Provider.of<ContentEditorBloc>(context).changePath(item.path);
+                          },
+                          child: Text(item.name == '' ? 'ROOT' : item.name),
+                        )
+                      ],
+                )
+                .skip(1),
+            ...trailing,
+            Expanded(child: Container()),
+            ...(() {
+              _logger.finer('got modification data $snapshot');
+              if (snapshot.hasData && snapshot.data.hasModifications) {
+                return [
+                  RaisedButton.icon(
+                    onPressed: () {
+                      Provider.of<Deps>(context)
+                          .apiService
+                          .saveModifications(contentEditorBloc.path, snapshot.data.updates)
+                          .then((result) {
+                        if (result.unsaved.isEmpty) {
+                          contentEditorBloc.changePath(contentEditorBloc.path);
+                        } else {
+                          _logger.warning('There have been unsaved changes. $result');
+                        }
+                      });
+                    },
+                    icon: Icon(Icons.save),
+                    label: Text('Save ${snapshot.data.updates.length} changes'),
+                  ),
+                ];
+              } else {
+                return <Widget>[];
+              }
+            })(),
+          ],
+        );
+      },
     );
   }
 }
 
 typedef void OnPropertyChanged(String name, dynamic value);
-
-Color _propertyIconColor(ContentDefPropertyReflection prop) {
-  if (prop.optional) {
-    return Colors.black12;
-  } else {
-    return darkPrimaryColor;
-  }
-}
 
 class ContentProperties extends StatelessWidget {
   const ContentProperties({
@@ -296,21 +323,54 @@ class ContentProperties extends StatelessWidget {
       children: reflection.properties.map((prop) {
         if (prop.kind == ContentDefKind.Primitive) {
           final dynamic value = content[prop.name];
+          final dynamic defaultValue = reflection?.defaultValues[prop.name];
           return PrimitiveContentProperty(
             prop: prop,
             initialValue: value,
+            defaultValue: defaultValue,
             onValueChanged: (dynamic val) {
 //              content[prop.name] = val;
               _logger.finest('Property for ${prop.name} changed to $val');
               onValueChanged(prop.name, val);
             },
           );
+        } else if (prop.kind == ContentDefKind.File) {
+          final dynamic value = content[prop.name];
+          return FilePropertyEditor(
+            prop: prop,
+            initialValue: value,
+            onValueChanged: (dynamic val) {
+              onValueChanged(prop.name, val);
+            },
+          );
+        } else if (prop.kind == ContentDefKind.Enum) {
+          assert(prop.multiValue == false);
+          final value = content[prop.name] as String;
+          final defaultValue = reflection.defaultValues[prop.name] as String;
+          _logger.fine('Enum value: $value -- ${reflection.defaultValues}');
+          return ListTile(
+            leading: Icon(Icons.format_list_bulleted),
+            title: DropdownButtonFormField<String>(
+              decoration: InputDecoration(
+                  labelText: prop.name, helperText: defaultValue != null ? 'Default: $defaultValue' : null),
+              value: value ?? defaultValue,
+              onChanged: (newValue) {
+                onValueChanged(prop.name, newValue);
+              },
+              items: prop.enumValues.map((value) {
+                return DropdownMenuItem(
+                  child: Text(value),
+                  value: value,
+                );
+              }).toList(),
+            ),
+          );
         }
         return ExpansionTile(
           key: PageStorageKey(prop.name),
           leading: Icon(
             Icons.subdirectory_arrow_right,
-            color: _propertyIconColor(prop),
+            color: Dc2fTheme.propertyIconColor(prop),
           ),
           title: Text('${prop.name} (${prop.kind})'),
           backgroundColor: Colors.white,
@@ -338,7 +398,7 @@ class ContentProperties extends StatelessWidget {
                   return ListTile(
                     leading: Icon(
                       Icons.link,
-                      color: _propertyIconColor(prop),
+                      color: Dc2fTheme.propertyIconColor(prop),
                     ),
                     title: Text('${child.path}'),
                     onTap: () {
@@ -351,7 +411,7 @@ class ContentProperties extends StatelessWidget {
               ListTile(
                 leading: Icon(
                   Icons.add,
-                  color: _propertyIconColor(prop),
+                  color: Dc2fTheme.propertyIconColor(prop),
                 ),
                 title: const Text('Create new item'),
                 onTap: () {
@@ -378,8 +438,11 @@ class ContentProperties extends StatelessWidget {
                     if (entry == null) {
                       return;
                     }
+                    final editorBloc = Provider.of<ContentEditorBloc>(context);
                     Navigator.of(context).push(MaterialPageRoute<void>(
-                      builder: (context) => CreateContentObject(
+                      builder: (subContext) => CreateContentObject(
+                            parentPath: editorBloc.path,
+                            property: prop.name,
                             typeIdentifier: entry.key,
                             type: entry.value,
                           ),
@@ -421,8 +484,8 @@ class ContentProperties extends StatelessWidget {
         }
       }
     } else if (prop.kind == ContentDefKind.Parsable) {
-      final content = children[prop.name]?.first?.rawContent;
-      _logger.fine('text content: ($content)');
+      final parsableContent = children[prop.name]?.first?.rawContent ?? content[prop.name] as String;
+      _logger.fine('text content: ($parsableContent)');
       return [
         TextField(
           // workaround: add key, otherwise it seems the scrolling of the ListView is confused
@@ -431,7 +494,7 @@ class ContentProperties extends StatelessWidget {
           decoration: InputDecoration(
             helperText: '${prop.parsableHint}',
           ),
-          controller: TextEditingController(text: content ?? ''),
+          controller: TextEditingController(text: parsableContent ?? ''),
           onChanged: (value) {
             _logger.fine('got text field modification. {$value}');
             onValueChanged(prop.name, value);
@@ -450,7 +513,7 @@ class ContentProperties extends StatelessWidget {
           if (entry.value is! Map) {
             return ExpansionTile(
                 key: PageStorageKey('nested${entry.key}'),
-                leading: Icon(Icons.label, color: _propertyIconColor(prop)),
+                leading: Icon(Icons.label, color: Dc2fTheme.propertyIconColor(prop)),
                 title: Text(entry.key + ' -- not yet supported (${prop.mapValueType} for ${entry.value.runtimeType})'),
                 initiallyExpanded: false,
                 children: <Widget>[]);
@@ -460,7 +523,7 @@ class ContentProperties extends StatelessWidget {
             decoration: BoxDecoration(border: Border(left: BorderSide(color: Colors.green, width: 4))),
             child: ExpansionTile(
               key: PageStorageKey('nested${entry.key}'),
-              leading: Icon(Icons.label, color: _propertyIconColor(prop)),
+              leading: Icon(Icons.label, color: Dc2fTheme.propertyIconColor(prop)),
               title: Text(entry.key),
               initiallyExpanded: false,
               children: <Widget>[
@@ -507,11 +570,13 @@ class PrimitiveContentProperty extends StatefulWidget {
     Key key,
     @required this.prop,
     this.initialValue,
+    this.defaultValue,
     @required this.onValueChanged,
   }) : super(key: key);
 
   final ContentDefPropertyReflection prop;
   final dynamic initialValue;
+  final dynamic defaultValue;
   final OnValueChanged onValueChanged;
 
   @override
@@ -525,7 +590,7 @@ class _PrimitiveContentPropertyState extends State<PrimitiveContentProperty> {
   @override
   void initState() {
     super.initState();
-    value = widget.initialValue;
+    value = widget.initialValue ?? widget.defaultValue;
   }
 
   String _multiValueToString(dynamic value) {
@@ -549,7 +614,7 @@ class _PrimitiveContentPropertyState extends State<PrimitiveContentProperty> {
               });
             },
             child: SwitchListTile(
-              secondary: Icon(Icons.edit, color: _propertyIconColor(prop)),
+              secondary: Icon(Icons.edit, color: Dc2fTheme.propertyIconColor(prop)),
               title: Text('${prop.name}${prop.optional ? '' : ' *'}'),
               value: value as bool ?? false,
               onChanged: (val) {
@@ -563,7 +628,7 @@ class _PrimitiveContentPropertyState extends State<PrimitiveContentProperty> {
         );
       case PrimitiveType.String:
         return ListTile(
-          leading: Icon(Icons.edit, color: _propertyIconColor(prop)),
+          leading: Icon(Icons.edit, color: Dc2fTheme.propertyIconColor(prop)),
           selected: false,
           enabled: false,
           title: TextField(
@@ -589,7 +654,7 @@ class _PrimitiveContentPropertyState extends State<PrimitiveContentProperty> {
         );
       case PrimitiveType.ZonedDateTime:
         return ListTile(
-          leading: Icon(Icons.calendar_today, color: _propertyIconColor(prop)),
+          leading: Icon(Icons.calendar_today, color: Dc2fTheme.propertyIconColor(prop)),
           selected: false,
           title: Text(prop.name + ': ' + (value == null ? 'Not set' : '$value')),
           onTap: () {
@@ -600,6 +665,7 @@ class _PrimitiveContentPropertyState extends State<PrimitiveContentProperty> {
               onConfirm: (dateTime) {
                 setState(() {
                   value = isoFormat.format(dateTime);
+                  widget.onValueChanged(isoFormat.format(dateTime));
                 });
               },
             );
@@ -607,11 +673,31 @@ class _PrimitiveContentPropertyState extends State<PrimitiveContentProperty> {
         );
       case PrimitiveType.Unknown:
         return ListTile(
-          leading: Icon(Icons.broken_image, color: _propertyIconColor(prop)),
+          leading: Icon(Icons.broken_image, color: Dc2fTheme.propertyIconColor(prop)),
           title: Text('Unsupported property ${prop.name} for now. ${prop.type}.'),
         );
     }
     throw ArgumentError('Invalid property type ${prop.type}');
+  }
+}
+
+class FileInfo {
+  FileInfo(this.path);
+
+  final String path;
+}
+
+class FileSelectionBloc {
+  FileSelectionBloc() {
+    _selectedFiles.add({});
+  }
+
+  BehaviorSubject<Map<String, FileInfo>> _selectedFiles = BehaviorSubject();
+
+  Map<String, FileInfo> get selectedFiles => _selectedFiles.value;
+
+  void addFileSelected(String baseName, FileInfo fileInfo) {
+    _selectedFiles.add({...selectedFiles, baseName: fileInfo});
   }
 }
 
@@ -633,8 +719,12 @@ class CreateContentBloc {
 }
 
 class CreateContentObject extends StatefulWidget {
-  const CreateContentObject({Key key, this.typeIdentifier, this.type}) : super(key: key);
+  const CreateContentObject(
+      {Key key, @required this.parentPath, @required this.property, this.typeIdentifier, this.type})
+      : super(key: key);
 
+  final String parentPath;
+  final String property;
   final String typeIdentifier;
   final String type;
 
@@ -644,7 +734,9 @@ class CreateContentObject extends StatefulWidget {
 
 class _CreateContentObjectState extends State<CreateContentObject> {
   CreateContentBloc bloc = CreateContentBloc();
+  FileSelectionBloc fileSelectionBloc = FileSelectionBloc();
   GlobalKey<FormState> _formKey = GlobalKey();
+  TextEditingController _slugController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -654,49 +746,62 @@ class _CreateContentObjectState extends State<CreateContentObject> {
       appBar: AppBar(
         title: Text('Create content "${widget.typeIdentifier}"'),
       ),
-      body: Column(
-        mainAxisSize: MainAxisSize.max,
-        children: <Widget>[
-          const Padding(padding: EdgeInsets.only(top: 8)),
-          ListTile(
-            title: TextField(
-              decoration: InputDecoration(labelText: 'Slug/Name for the new object'),
+      body: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.max,
+          children: <Widget>[
+            const Padding(padding: EdgeInsets.only(top: 8)),
+            ListTile(
+              title: TextFormField(
+                decoration: InputDecoration(labelText: 'Slug/Name for the new object'),
+                controller: _slugController,
+                validator: SValidator.notEmpty(),
+              ),
+              trailing: RaisedButton.icon(
+                icon: Icon(Icons.save),
+                label: const Text('Create'),
+                onPressed: () {
+                  if (_formKey.currentState?.validate() == true) {
+                    _logger.finest('We can safe this thing as ${_slugController.text} ${bloc._data.value}');
+                    deps.apiService.createContent(
+                      parentPath: widget.parentPath,
+                      slug: _slugController.text,
+                      property: widget.property,
+                      typeIdentifier: widget.typeIdentifier,
+                      content: bloc._data.value.updates,
+                      files: fileSelectionBloc.selectedFiles,
+                    );
+                  }
+                },
+              ),
             ),
-            trailing: RaisedButton.icon(
-              icon: Icon(Icons.save),
-              label: const Text('Create'),
-              onPressed: () {
-                if (_formKey.currentState?.validate() == true) {
-                  _logger.finest('We can safe this thing as ${bloc._data.value}');
-                }
-              },
-            ),
-          ),
-          const Padding(padding: EdgeInsets.only(top: 8)),
-          FutureBuilder<ContentDefReflection>(
-              future: deps.apiService.reflectType(widget.type),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const CircularProgressIndicator();
-                }
-                return Form(
-                  key: _formKey,
-                  child: Expanded(
-                    child: SingleChildScrollView(
-                      child: ContentProperties(
-                        reflection: snapshot.data,
-                        content: <String, dynamic>{},
-                        children: <String, List<ContentDefChild>>{},
-                        types: {},
-                        onValueChanged: (String name, dynamic value) {
-                          bloc.addModificationUpdate(name, value);
-                        },
+            const Padding(padding: EdgeInsets.only(top: 8)),
+            Provider.value(
+              value: fileSelectionBloc,
+              child: FutureBuilder<ContentDefReflection>(
+                  future: deps.apiService.reflectType(widget.type),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return const CircularProgressIndicator();
+                    }
+                    return Expanded(
+                      child: SingleChildScrollView(
+                        child: ContentProperties(
+                          reflection: snapshot.data,
+                          content: <String, dynamic>{},
+                          children: <String, List<ContentDefChild>>{},
+                          types: {},
+                          onValueChanged: (String name, dynamic value) {
+                            bloc.addModificationUpdate(name, value);
+                          },
+                        ),
                       ),
-                    ),
-                  ),
-                );
-              }),
-        ],
+                    );
+                  }),
+            ),
+          ],
+        ),
       ),
     );
   }

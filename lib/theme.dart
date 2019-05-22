@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'service/api/dto.dart';
+
 final primaryColor = Colors.deepPurple[50];
 final darkPrimaryColor = Colors.deepPurple[500];
 
@@ -26,4 +28,15 @@ ThemeData createTheme() {
       isDense: true,
     ),
   );
+}
+
+class Dc2fTheme {
+  static Color propertyIconColor(ContentDefPropertyReflection prop) {
+    if (prop.optional) {
+      return Colors.black12;
+    } else {
+      return darkPrimaryColor;
+    }
+  }
+
 }

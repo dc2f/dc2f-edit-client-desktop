@@ -14,7 +14,6 @@
 				33CC111E2044C6BF0003C045 /* ShellScript */,
 			);
 			dependencies = (
-				33D1A0EC22148486006C7A3E /* PBXTargetDependency */,
 			);
 			name = "Build Flutter Bundle";
 			productName = FLX;
@@ -30,6 +29,8 @@
 		33CC112F204626C80003C045 /* flutter_assets in Resources */ = {isa = PBXBuildFile; fileRef = 33CC112C20461AD40003C045 /* flutter_assets */; };
 		33D1A10422148B71006C7A3E /* FlutterMacOS.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 33D1A10322148B71006C7A3E /* FlutterMacOS.framework */; };
 		33D1A10522148B93006C7A3E /* FlutterMacOS.framework in Bundle Framework */ = {isa = PBXBuildFile; fileRef = 33D1A10322148B71006C7A3E /* FlutterMacOS.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		E5BD4FD32292E62400C25E3A /* FlutterEmbedderFileChooser.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E5BD4FCD2292E36000C25E3A /* FlutterEmbedderFileChooser.framework */; };
+		E5BD4FD42292E62400C25E3A /* FlutterEmbedderFileChooser.framework in Bundle Framework */ = {isa = PBXBuildFile; fileRef = E5BD4FCD2292E36000C25E3A /* FlutterEmbedderFileChooser.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -39,6 +40,20 @@
 			proxyType = 1;
 			remoteGlobalIDString = 33CC111A2044C6BA0003C045;
 			remoteInfo = FLX;
+		};
+		E5BD4FCC2292E36000C25E3A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E5BD4FC72292E35F00C25E3A /* FlutterEmbedderFileChooser.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 3329001620D2D6F7002E5F16;
+			remoteInfo = FlutterEmbedderFileChooser;
+		};
+		E5BD4FD52292E62400C25E3A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E5BD4FC72292E35F00C25E3A /* FlutterEmbedderFileChooser.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 3329001520D2D6F7002E5F16;
+			remoteInfo = FlutterEmbedderFileChooser;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -50,6 +65,7 @@
 			dstSubfolderSpec = 10;
 			files = (
 				33D1A10522148B93006C7A3E /* FlutterMacOS.framework in Bundle Framework */,
+				E5BD4FD42292E62400C25E3A /* FlutterEmbedderFileChooser.framework in Bundle Framework */,
 			);
 			name = "Bundle Framework";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -71,6 +87,7 @@
 		33D1A10322148B71006C7A3E /* FlutterMacOS.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FlutterMacOS.framework; path = Flutter/FlutterMacOS.framework; sourceTree = SOURCE_ROOT; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Configs/Release.xcconfig; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Configs/Debug.xcconfig; sourceTree = "<group>"; };
+		E5BD4FC72292E35F00C25E3A /* FlutterEmbedderFileChooser.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = FlutterEmbedderFileChooser.xcodeproj; path = "../deps/flutter-desktop-embedding/plugins/file_chooser/macos/FlutterEmbedderFileChooser.xcodeproj"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -79,6 +96,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				33D1A10422148B71006C7A3E /* FlutterMacOS.framework in Frameworks */,
+				E5BD4FD32292E62400C25E3A /* FlutterEmbedderFileChooser.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -107,6 +125,7 @@
 				33BA886A226E78AF003329D5 /* Configs */,
 				33D1A10222148A83006C7A3E /* Frameworks */,
 				33CC10EE2044A3C60003C045 /* Products */,
+				E5BD4FC72292E35F00C25E3A /* FlutterEmbedderFileChooser.xcodeproj */,
 			);
 			sourceTree = "<group>";
 		};
@@ -137,6 +156,14 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		E5BD4FC82292E35F00C25E3A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				E5BD4FCD2292E36000C25E3A /* FlutterEmbedderFileChooser.framework */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -152,8 +179,8 @@
 			buildRules = (
 			);
 			dependencies = (
-				33D1A0EA2214847F006C7A3E /* PBXTargetDependency */,
 				33CC11202044C79F0003C045 /* PBXTargetDependency */,
+				E5BD4FD62292E62400C25E3A /* PBXTargetDependency */,
 			);
 			name = Runner;
 			productName = "DC2F Content Editor";
@@ -192,6 +219,12 @@
 			mainGroup = 33CC10E42044A3C60003C045;
 			productRefGroup = 33CC10EE2044A3C60003C045 /* Products */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = E5BD4FC82292E35F00C25E3A /* Products */;
+					ProjectRef = E5BD4FC72292E35F00C25E3A /* FlutterEmbedderFileChooser.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				33CC10EC2044A3C60003C045 /* Runner */,
@@ -199,6 +232,16 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXReferenceProxy section */
+		E5BD4FCD2292E36000C25E3A /* FlutterEmbedderFileChooser.framework */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.framework;
+			path = FlutterEmbedderFileChooser.framework;
+			remoteRef = E5BD4FCC2292E36000C25E3A /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+/* End PBXReferenceProxy section */
 
 /* Begin PBXResourcesBuildPhase section */
 		33CC10EB2044A3C60003C045 /* Resources */ = {
@@ -247,6 +290,11 @@
 			isa = PBXTargetDependency;
 			target = 33CC111A2044C6BA0003C045 /* Build Flutter Bundle */;
 			targetProxy = 33CC111F2044C79F0003C045 /* PBXContainerItemProxy */;
+		};
+		E5BD4FD62292E62400C25E3A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = FlutterEmbedderFileChooser;
+			targetProxy = E5BD4FD52292E62400C25E3A /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -382,7 +430,11 @@
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = "";
-				FRAMEWORK_SEARCH_PATHS = $PROJECT_DIR/Flutter;
+				FRAMEWORK_SEARCH_PATHS = (
+					$PROJECT_DIR/Flutter,
+					"$(PROJECT_DIR)/Flutter",
+					"$(PROJECT_DIR)",
+				);
 				INFOPLIST_FILE = Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.google.FlutterEmbedderMacExample.FlutterDesktopExample;
@@ -402,7 +454,11 @@
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = "";
-				FRAMEWORK_SEARCH_PATHS = $PROJECT_DIR/Flutter;
+				FRAMEWORK_SEARCH_PATHS = (
+					$PROJECT_DIR/Flutter,
+					"$(PROJECT_DIR)/Flutter",
+					"$(PROJECT_DIR)",
+				);
 				INFOPLIST_FILE = Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.google.FlutterEmbedderMacExample.FlutterDesktopExample;
@@ -422,22 +478,6 @@
 			name = Debug;
 		};
 		33CC111D2044C6BA0003C045 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-			};
-			name = Release;
-		};
-		33D1A0E622148440006C7A3E /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-			};
-			name = Debug;
-		};
-		33D1A0E722148440006C7A3E /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -471,15 +511,6 @@
 			buildConfigurations = (
 				33CC111C2044C6BA0003C045 /* Debug */,
 				33CC111D2044C6BA0003C045 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		33D1A0E522148440006C7A3E /* Build configuration list for PBXAggregateTarget "Copy Flutter Framework" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				33D1A0E622148440006C7A3E /* Debug */,
-				33D1A0E722148440006C7A3E /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

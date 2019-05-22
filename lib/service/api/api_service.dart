@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dc2f_edit_client_desktop/screens/content_editor.dart';
 import 'package:meta/meta.dart';
 import 'package:logging/logging.dart';
 import 'package:dio/dio.dart';
@@ -44,6 +45,40 @@ class ApiService {
   Future<ContentDefReflection> reflectType(String baseType) {
     return reflectTypes({baseType}).then((val) => val.types[baseType]);
   }
+
+  Future<String> createContent({
+    @required String parentPath,
+    @required String slug,
+    @required String property,
+    @required String typeIdentifier,
+    @required Map<String, dynamic> content,
+    @required Map<String, FileInfo> files,
+  }) async {
+    final beginResponse = await apiCaller.post(
+      '/createChild/begin$parentPath',
+      data: ContentCreate(
+        typeIdentifier: typeIdentifier,
+        property: property,
+        slug: slug,
+        content: content,
+      ).toJson(),
+    );
+    final transaction = beginResponse['transaction'] as String;
+    final headers =<String, dynamic>{
+      'x-transaction': transaction,
+    };
+    await apiCaller.post(
+      '/createChild/upload$parentPath',
+      headers: headers,
+      formData: FormData.from(<String, dynamic>{
+        'files': files.entries.map((entry) => UploadFileInfo(File(entry.value.path), entry.key)).toList(),
+      }),
+    );
+    final response = await apiCaller.post('/createChild/commit', headers: headers);
+    final path = response['path'] as String;
+    _logger.fine('Saved content, available as $path');
+    return path;
+  }
 }
 
 Future<T> _logApiError<T>(Future<T> then) => then.catchError((dynamic err, StackTrace stackTrace) {
@@ -76,20 +111,26 @@ class ApiCaller {
   final String apiEndpoint;
   final Dio dio = Dio();
 
-  Future<Map<String, dynamic>> _callApi(String path,
-      {String method, Map<String, dynamic> data, bool ignoreOkResult = false}) {
+  Future<Map<String, dynamic>> _callApi(
+    String path, {
+    String method,
+    Map<String, dynamic> data,
+    FormData formData,
+    bool ignoreOkResult = false,
+    Map<String, dynamic> headers,
+  }) {
     _logger.fine('calling api $method: $apiEndpoint$path');
 
     return dio
         .request<String>(
       '$apiEndpoint$path',
-      data: data,
+      data: data ?? formData,
       options: Options(
         method: method,
         responseType: ResponseType.plain,
         validateStatus: (status) =>
             status == HttpStatus.ok || status == HttpStatus.unauthorized || status == HttpStatus.badRequest,
-        headers: null,
+        headers: headers,
       ),
     )
         .then((response) {
@@ -111,11 +152,19 @@ class ApiCaller {
     });
   }
 
-  Future<Map<String, dynamic>> post(String path, {Map<String, dynamic> data, bool ignoreOkResult = false}) {
+  Future<Map<String, dynamic>> post(
+    String path, {
+    Map<String, dynamic> data,
+    bool ignoreOkResult = false,
+    FormData formData,
+    Map<String, dynamic> headers,
+  }) {
     return _callApi(
       path,
       method: 'POST',
       data: data,
+      formData: formData,
+      headers: headers,
       ignoreOkResult: ignoreOkResult,
     );
   }
