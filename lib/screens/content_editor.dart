@@ -124,9 +124,10 @@ class ContentEditorHeader extends StatelessWidget {
         Tooltip(
           message: '${reflection.type}',
           child: Text(
-              'Type: ' + (reflection.typeIdentifier != null
-                ? '${reflection.typeIdentifier ?? ''}\n(${reflection.type.split('.').last})'
-                : reflection.type.split('.').last),
+            'Type: ' +
+                (reflection.typeIdentifier != null
+                    ? '${reflection.typeIdentifier ?? ''}\n(${reflection.type.split('.').last})'
+                    : reflection.type.split('.').last),
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.body1.apply(heightFactor: 0.8, color: Colors.black12),
           ),
@@ -251,15 +252,15 @@ class BreadcrumbsWidget extends StatelessWidget {
             ...breadcrumbs
                 .expand(
                   (item) => [
-                        const Text('/'),
-                        FlatButton(
-                          textTheme: ButtonTextTheme.primary,
-                          onPressed: () {
-                            Provider.of<ContentEditorBloc>(context).changePath(item.path);
-                          },
-                          child: Text(item.name == '' ? 'ROOT' : item.name),
-                        )
-                      ],
+                    const Text('/'),
+                    FlatButton(
+                      textTheme: ButtonTextTheme.primary,
+                      onPressed: () {
+                        Provider.of<ContentEditorBloc>(context).changePath(item.path);
+                      },
+                      child: Text(item.name == '' ? 'ROOT' : item.name),
+                    )
+                  ],
                 )
                 .skip(1),
             ...trailing,
@@ -441,11 +442,11 @@ class ContentProperties extends StatelessWidget {
                     final editorBloc = Provider.of<ContentEditorBloc>(context);
                     Navigator.of(context).push(MaterialPageRoute<void>(
                       builder: (subContext) => CreateContentObject(
-                            parentPath: editorBloc.path,
-                            property: prop.name,
-                            typeIdentifier: entry.key,
-                            type: entry.value,
-                          ),
+                        parentPath: editorBloc.path,
+                        property: prop.name,
+                        typeIdentifier: entry.key,
+                        type: entry.value,
+                      ),
                     ));
                     _logger.info('Creating new $entry.');
                   });
@@ -682,9 +683,10 @@ class _PrimitiveContentPropertyState extends State<PrimitiveContentProperty> {
 }
 
 class FileInfo {
-  FileInfo(this.path);
+  FileInfo(this.path, this.length);
 
   final String path;
+  final int length;
 }
 
 class FileSelectionBloc {

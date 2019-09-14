@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:dc2f_edit_client_desktop/screens/content_editor.dart';
 import 'package:meta/meta.dart';
 import 'package:logging/logging.dart';
-import 'package:dio/dio.dart';
+import 'package:http/http.dart' as http;
 
 import 'dto.dart';
 
@@ -64,17 +65,21 @@ class ApiService {
       ).toJson(),
     );
     final transaction = beginResponse['transaction'] as String;
-    final headers =<String, dynamic>{
+    final headers = <String, dynamic>{
       'x-transaction': transaction,
     };
-    await apiCaller.post(
-      '/createChild/upload$parentPath',
-      headers: headers,
-      formData: FormData.from(<String, dynamic>{
-        'files': files.entries.map((entry) => UploadFileInfo(File(entry.value.path), entry.key)).toList(),
-      }),
-    );
-    final response = await apiCaller.post('/createChild/commit', headers: headers);
+    final multipartFiles = files?.entries?.map<http.MultipartFile>((entry) =>
+        http.MultipartFile('files', File(entry.value.path).openRead(), entry.value.length, filename: entry.key));
+    http.MultipartRequest('POST', Uri.parse('/createChild/upload$parentPath'));
+
+//    await apiCaller.post(
+//      '/createChild/upload$parentPath',
+//      headers: headers,
+//      formData: FormData.from(<String, dynamic>{
+//        'files': files.entries.map((entry) => UploadFileInfo(File(entry.value.path), entry.key)).toList(),
+//      }),
+//    );
+    final response = await apiCaller.post('/createChild/commit', headers: headers, files: multipartFiles);
     final path = response['path'] as String;
     _logger.fine('Saved content, available as $path');
     return path;
@@ -109,61 +114,81 @@ class ApiCaller {
   ApiCaller({@required String apiEndpoint}) : apiEndpoint = apiEndpoint.replaceAll(RegExp(r'/+$'), '');
 
   final String apiEndpoint;
-  final Dio dio = Dio();
+  final http.Client client = http.Client();
 
   Future<Map<String, dynamic>> _callApi(
     String path, {
     String method,
     Map<String, dynamic> data,
-    FormData formData,
+    Iterable<http.MultipartFile> files,
     bool ignoreOkResult = false,
     Map<String, dynamic> headers,
   }) {
     _logger.fine('calling api $method: $apiEndpoint$path');
 
-    return dio
-        .request<String>(
-      '$apiEndpoint$path',
-      data: data ?? formData,
-      options: Options(
-        method: method,
-        responseType: ResponseType.plain,
-        validateStatus: (status) =>
-            status == HttpStatus.ok || status == HttpStatus.unauthorized || status == HttpStatus.badRequest,
-        headers: headers,
-      ),
-    )
-        .then((response) {
-      if (response.statusCode == HttpStatus.unauthorized) {
-        return Future.error(UnauthorizedException('Endpoint returned unauthorized.'), StackTrace.current);
-      }
-      if (ignoreOkResult) {
-        return <String, dynamic>{};
-      }
-      final Map<String, dynamic> data = json.decode(response.data) as Map<String, dynamic>;
-      if (response.statusCode == HttpStatus.badRequest) {
-        _logger.warning('Bad request, $data');
-        return Future.error(BadRequestException(data['message'] as String));
-      }
+    final url = Uri.parse('$apiEndpoint$path');
+
+    http.BaseRequest request;
+    if (files != null) {
+      request = http.MultipartRequest(method, url)..files.addAll(files);
+    } else {
+      request = http.Request(method, url)..body = json.encode(data);
+    }
+    if (headers != null) {
+      request.headers.addAll(headers.map((key, dynamic value) => MapEntry(key, value as String)));
+    }
+    return client.send(request).then((response) async {
+      final responseString = await utf8.decodeStream(response.stream);
+      final Map<String, dynamic> data = json.decode(responseString) as Map<String, dynamic>;
       return data;
-    }, onError: (dynamic error, StackTrace stackTrace) {
-      _logger.warning('Error while calling api endpoint $path', error, stackTrace);
-      return Future<Map<String, dynamic>>.error(error, stackTrace);
     });
+
+//
+//    return dio
+//        .request<ResponseBody>(
+//      '$apiEndpoint$path',
+//      data: data ?? formData,
+//      options: Options(
+//        method: method,
+//        responseType: ResponseType.stream,
+//        validateStatus: (status) =>
+//            status == HttpStatus.ok || status == HttpStatus.unauthorized || status == HttpStatus.badRequest,
+//        headers: headers,
+//      ),
+//    )
+//        .then((response) async {
+//      if (response.statusCode == HttpStatus.unauthorized) {
+//        return Future.error(UnauthorizedException('Endpoint returned unauthorized.'), StackTrace.current);
+//      }
+//      if (ignoreOkResult) {
+//        return <String, dynamic>{};
+//      }
+//      final body = response.data as ResponseBody;
+//      final dataString = await utf8.decodeStream(body.stream as Stream<Uint8List>);
+//      final Map<String, dynamic> data = json.decode(dataString) as Map<String, dynamic>;
+//      if (response.statusCode == HttpStatus.badRequest) {
+//        _logger.warning('Bad request, $data');
+//        return Future.error(BadRequestException(data['message'] as String));
+//      }
+//      return data;
+//    }, onError: (dynamic error, StackTrace stackTrace) {
+//      _logger.warning('Error while calling api endpoint $path', error, stackTrace);
+//      return Future<Map<String, dynamic>>.error(error, stackTrace);
+//    });
   }
 
   Future<Map<String, dynamic>> post(
     String path, {
     Map<String, dynamic> data,
     bool ignoreOkResult = false,
-    FormData formData,
+    Iterable<http.MultipartFile> files,
     Map<String, dynamic> headers,
   }) {
     return _callApi(
       path,
       method: 'POST',
       data: data,
-      formData: formData,
+      files: files,
       headers: headers,
       ignoreOkResult: ignoreOkResult,
     );

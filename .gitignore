@@ -46,3 +46,5 @@ pubspec.lock
 
 deps/.flutter_location_config
 
+/macos/Flutter/FlutterMacOS.framework
+

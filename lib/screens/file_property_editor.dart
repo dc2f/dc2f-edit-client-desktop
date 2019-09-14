@@ -30,7 +30,6 @@ class FilePropertyEditor extends StatefulWidget {
 }
 
 class _FilePropertyEditorState extends State<FilePropertyEditor> {
-
   dynamic value;
 
   @override
@@ -57,7 +56,8 @@ class _FilePropertyEditorState extends State<FilePropertyEditor> {
             if (result == FileChooserResult.ok) {
               final baseName = p.basename(paths[0]);
               widget.onValueChanged(baseName);
-              Provider.of<FileSelectionBloc>(context).addFileSelected(baseName, FileInfo(paths[0]));
+              final file = File(paths[0]);
+              Provider.of<FileSelectionBloc>(context).addFileSelected(baseName, FileInfo(paths[0], file.lengthSync()));
               setState(() {
                 value = baseName;
               });

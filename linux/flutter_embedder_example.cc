@@ -56,14 +56,11 @@ int main(int argc, char **argv) {
 
   // Arguments for the Flutter Engine.
   std::vector<std::string> arguments;
-#ifdef NDEBUG
-  arguments.push_back("--disable-dart-asserts");
-#endif
 
   flutter::FlutterWindowController flutter_controller(icu_data_path);
 
   // Start the engine.
-  if (!flutter_controller.CreateWindow(800, 600, "DC2F Content Editor",
+  if (!flutter_controller.CreateWindow(800, 600, "Flutter Desktop Example",
                                        assets_path, arguments)) {
     return EXIT_FAILURE;
   }
