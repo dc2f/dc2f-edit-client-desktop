@@ -5,4 +5,4 @@ targets:
         generate_for:
           - lib/**/*.dart
         options:
-          content: '// ignore_for_file: strong_mode_implicit_dynamic_parameter'
+          content: '// ignore_for_file: strong_mode_implicit_dynamic_parameter, implicit_dynamic_parameter, implicit_dynamic_variable'

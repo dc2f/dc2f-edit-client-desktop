@@ -1,11 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:dc2f_edit_client_desktop/screens/content_editor.dart';
-import 'package:meta/meta.dart';
-import 'package:logging/logging.dart';
 import 'package:http/http.dart' as http;
+import 'package:logging/logging.dart';
+import 'package:meta/meta.dart';
 
 import 'dto.dart';
 

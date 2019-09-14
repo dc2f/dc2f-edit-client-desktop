@@ -205,4 +205,4 @@ Map<String, dynamic> _$ContentCreateToJson(ContentCreate instance) =>
 // StaticTextGenerator
 // **************************************************************************
 
-// ignore_for_file: strong_mode_implicit_dynamic_parameter
+// ignore_for_file: strong_mode_implicit_dynamic_parameter, implicit_dynamic_parameter, implicit_dynamic_variable
